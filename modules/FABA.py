@@ -1,16 +1,16 @@
-# modules/FABA.py
-# --- Podcast üreten çekirdek modül ---
-
-from __future__ import annotations
-import os, io, json, hashlib
-from typing import List, Dict, Any, Optional
-
 # ❗ Ensure ffmpeg/ffprobe is available for pydub
+import os
 import imageio_ffmpeg as ffmpeg
-os.environ["PATH"] += os.pathsep + os.path.dirname(ffmpeg.get_ffmpeg_exe())
 
-import requests
+# Add ffmpeg folder to PATH
+ffmpeg_path = os.path.dirname(ffmpeg.get_ffmpeg_exe())
+os.environ["PATH"] += os.pathsep + ffmpeg_path
+
+# Now import pydub and explicitly set its binaries
 from pydub import AudioSegment
+AudioSegment.converter = os.path.join(ffmpeg_path, "ffmpeg")
+AudioSegment.ffprobe = os.path.join(ffmpeg_path, "ffprobe")
+
 
 # ------------------------------------------------------------
 # 0) API KEY - Güvenli okuma (env ya da .streamlit/secrets.toml)
