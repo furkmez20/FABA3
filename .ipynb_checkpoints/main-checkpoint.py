@@ -1,4 +1,10 @@
+
+import sys
 import streamlit as st
+
+st.write("Python version:", sys.version)
+
+
 from components.progress_bar import show_progress_bar
 from pages import input_page, edit_page, voices_page, themes_page, generate_page, text_extraction
 from utils.session_state import initialize_session_state
