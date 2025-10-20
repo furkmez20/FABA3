@@ -1,0 +1,16 @@
+# Python cache & build files
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Audio / media
+*.mp3
+*.mp4
+*.wav
+
+# Zip / binary / temp
+*.zip
+*.DS_Store
