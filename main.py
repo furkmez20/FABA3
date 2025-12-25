@@ -1,33 +1,51 @@
 import subprocess
+import sys
 import os
 
-# Install FFmpeg at runtime if not available
-def ensure_ffmpeg():
-    """Check if FFmpeg is available, install if not."""
+def install_system_ffmpeg():
+    """Install FFmpeg using system package manager."""
     try:
-        subprocess.run(['ffmpeg', '-version'], 
-                      capture_output=True, 
-                      check=True, 
-                      timeout=5)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        try:
-            print("Installing FFmpeg...")
-            subprocess.run(['apt-get', 'update'], check=False)
-            subprocess.run(['apt-get', 'install', '-y', 'ffmpeg'], 
-                         check=False, 
-                         timeout=120)
+        # Check if already installed
+        result = subprocess.run(
+            ['which', 'ffmpeg'], 
+            capture_output=True, 
+            text=True
+        )
+        if result.returncode == 0:
+            print(f"FFmpeg found at: {result.stdout.strip()}")
             return True
-        except Exception as e:
-            print(f"Failed to install FFmpeg: {e}")
+            
+        print("FFmpeg not found, attempting installation...")
+        
+        # Update package list
+        subprocess.run(
+            ['sudo', 'apt-get', 'update', '-y'],
+            check=False,
+            capture_output=True
+        )
+        
+        # Install FFmpeg
+        result = subprocess.run(
+            ['sudo', 'apt-get', 'install', '-y', 'ffmpeg'],
+            check=False,
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            print("FFmpeg installed successfully")
+            return True
+        else:
+            print(f"Installation failed: {result.stderr}")
             return False
+            
+    except Exception as e:
+        print(f"Error during FFmpeg installation: {e}")
+        return False
 
-# Run at startup
-ensure_ffmpeg()
+# Install before importing anything that uses pydub
+install_system_ffmpeg()
 
-# Now import the rest
-import streamlit as st
-# ... rest of your imports
 
 import sys
 import streamlit as st
