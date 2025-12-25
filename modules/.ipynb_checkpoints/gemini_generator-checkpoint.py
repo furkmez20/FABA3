@@ -1,8 +1,10 @@
 # modules/gemini_generator.py
+
 from __future__ import annotations
 from typing import Any, List
 import os
 import re
+
 import google.generativeai as genai
 
 # -----------------------------
@@ -11,18 +13,16 @@ import google.generativeai as genai
 def _read_gemini_key() -> str:
     key = os.getenv("GEMINI_API_KEY")
     if not key:
+        # Streamlit ortamında çalışıyorsak secrets'tan da dene
         try:
             import streamlit as st  # type: ignore
             key = st.secrets.get("GEMINI_API_KEY", "")
         except Exception:
             key = ""
     if not key:
-        raise RuntimeError(
-            "GEMINI_API_KEY bulunamadı (env veya .streamlit/secrets.toml)."
-        )
+        raise RuntimeError("GEMINI_API_KEY bulunamadı (env veya .streamlit/secrets.toml).")
     return key
 
-# Configure the API key
 genai.configure(api_key=_read_gemini_key())
 
 # -----------------------------
@@ -57,7 +57,7 @@ def _postprocess_to_list(text_or_list: Any) -> List[str]:
         whole = str(text_or_list or "").strip()
         # paragrafları çift boş satıra göre böl
         arr = [p.strip() for p in re.split(r"\n\s*\n+", whole) if p.strip()]
-    
+
     cleaned: List[str] = []
     for p in arr:
         # "Speaker 1: ..." öneklerini kaldır (sonraki adımda speaker'ı biz ekleyeceğiz)
@@ -70,18 +70,14 @@ def _postprocess_to_list(text_or_list: Any) -> List[str]:
 # -----------------------------
 def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
     """
-    Gemini API ile verilen prompt'a göre script'i yeniden yazar.
-    
-    Args:
-        paragraphs: Orijinal script paragrafları (liste veya string)
-        prompt: Yeniden yazma talimatı
-    
-    Returns:
-        Yeniden yazılmış script paragrafları listesi
+    paragraphs: List[str] bekler ama dict/list karışık gelse de tolere eder.
+    Her zaman List[str] döner (AI sonrası da).
     """
+    # 1) Girişi String listesine çevir (dict -> text)
     base_list = _as_text_list(paragraphs)
     input_text = "\n\n".join(base_list)
-    
+
+    # 2) İstem (prompt)
     system_msg = (
         "You are a podcast narration writer. "
         "Rewrite the original text based on the given theme or instructions. "
@@ -89,32 +85,17 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
         "Return the result as paragraphs separated by a blank line. "
         "Do NOT add speaker names or dialogue tags."
     )
-    
     full_prompt = (
         f"{system_msg}\n\n"
         f"Original Script:\n{input_text}\n\n"
         f"Rewrite Instruction:\n{prompt}\n\n"
         f"Format: one or two sentences per paragraph, separated by a blank line."
     )
-    
-    # Try models in order of preference (free models)
-    model_names = [
-        "models/gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-flash",
-        "gemini-pro"
-    ]
-    
-    last_error = None
-    for model_name in model_names:
-        try:
-            model = genai.GenerativeModel(model_name)
-            resp = model.generate_content(full_prompt)
-            raw = resp.text if hasattr(resp, 'text') else ""
-            return _postprocess_to_list(raw)
-        except Exception as e:
-            last_error = e
-            continue
-    
-    # If all models failed, raise the last error
-    raise RuntimeError(f"All Gemini models failed. Last error: {last_error}")
+
+    # 3) Gemini çağrısı
+    model = genai.GenerativeModel("models/gemini-2.5-flash")
+    resp = model.generate_content(full_prompt)
+    raw = (getattr(resp, "text", None) or "").strip()
+
+    # 4) Çıktıyı List[str]'e dönüştürüp geri ver
+    return _postprocess_to_list(raw)
