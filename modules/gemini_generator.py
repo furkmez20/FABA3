@@ -97,8 +97,8 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
     )
     
     resp = client.models.generate_content(
-        model="gemini-1.5-pro",
-        contents=full_prompt
+    model="gemini-2.0-flash-exp",  # ✅ Latest and fastest
+    contents=full_prompt
     )
     
     raw = getattr(resp, "text", "") or ""
