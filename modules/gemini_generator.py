@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, List
 import os
 import re
-from google import genai
+import google.genai as genai
 
 # -----------------------------
 # Güvenli API anahtarı okuma
@@ -73,15 +73,9 @@ def _postprocess_to_list(text_or_list: Any) -> List[str]:
 # Ana fonksiyon
 # -----------------------------
 def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
-    """
-    paragraphs: List[str] bekler ama dict/list karışık gelse de tolere eder.
-    Her zaman List[str] döner (AI sonrası da).
-    """
-    # 1) Girişi String listesine çevir (dict -> text)
     base_list = _as_text_list(paragraphs)
     input_text = "\n\n".join(base_list)
 
-    # 2) İstem (prompt)
     system_msg = (
         "You are a podcast narration writer. "
         "Rewrite the original text based on the given theme or instructions. "
@@ -96,14 +90,14 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
         f"Format: one or two sentences per paragraph, separated by a blank line."
     )
 
-    # 3) Gemini çağrısı (new google-genai)
     resp = client.models.generate_content(
         model="gemini-1.5-pro",
         contents=full_prompt
     )
-    raw = resp.text
+    raw = getattr(resp, "text", "") or ""
 
-    return _postprocess_to_list(raw)st(text_or_list: Any) -> List[str]:
+    return _postprocess_to_list(raw)
+st(text_or_list: Any) -> List[str]:
     """
     Modelden geleni List[str]'e çevirir.
     - Liste dönerse normalize eder
