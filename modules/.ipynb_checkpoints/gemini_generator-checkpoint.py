@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, List
 import os
 import re
-import google.generativeai as genai  # Changed import!
+import google.generativeai as genai
 
 # -----------------------------
 # Güvenli API anahtarı okuma
@@ -97,9 +97,24 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
         f"Format: one or two sentences per paragraph, separated by a blank line."
     )
     
-    # Using the stable API with FREE model
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    resp = model.generate_content(full_prompt)
+    # Try models in order of preference (free models)
+    model_names = [
+        "models/gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-pro"
+    ]
     
-    raw = resp.text if hasattr(resp, 'text') else ""
-    return _postprocess_to_list(raw)
+    last_error = None
+    for model_name in model_names:
+        try:
+            model = genai.GenerativeModel(model_name)
+            resp = model.generate_content(full_prompt)
+            raw = resp.text if hasattr(resp, 'text') else ""
+            return _postprocess_to_list(raw)
+        except Exception as e:
+            last_error = e
+            continue
+    
+    # If all models failed, raise the last error
+    raise RuntimeError(f"All Gemini models failed. Last error: {last_error}")
