@@ -96,11 +96,11 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
         f"Format: one or two sentences per paragraph, separated by a blank line."
     )
     
+    # Using FREE model: gemini-1.5-flash
     resp = client.models.generate_content(
-    model="gemini-1.5-pro",  # instead of gemini-2.0-flash-exp
-    contents=full_prompt
+        model="gemini-1.5-flash",  # FREE tier model
+        contents=full_prompt
     )
-
     
     raw = getattr(resp, "text", "") or ""
     return _postprocess_to_list(raw)
