@@ -1,5 +1,4 @@
 # modules/gemini_generator.py
-
 from __future__ import annotations
 from typing import Any, List
 import os
@@ -22,7 +21,6 @@ def _read_gemini_key() -> str:
             "GEMINI_API_KEY bulunamadı (env veya .streamlit/secrets.toml)."
         )
     return key
-
 
 client = genai.Client(api_key=_read_gemini_key())
 
@@ -58,7 +56,7 @@ def _postprocess_to_list(text_or_list: Any) -> List[str]:
         whole = str(text_or_list or "").strip()
         # paragrafları çift boş satıra göre böl
         arr = [p.strip() for p in re.split(r"\n\s*\n+", whole) if p.strip()]
-
+    
     cleaned: List[str] = []
     for p in arr:
         # "Speaker 1: ..." öneklerini kaldır (sonraki adımda speaker'ı biz ekleyeceğiz)
@@ -69,13 +67,20 @@ def _postprocess_to_list(text_or_list: Any) -> List[str]:
 # -----------------------------
 # Ana fonksiyon
 # -----------------------------
-# -----------------------------
-# Ana fonksiyon
-# -----------------------------
 def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
+    """
+    Gemini API ile verilen prompt'a göre script'i yeniden yazar.
+    
+    Args:
+        paragraphs: Orijinal script paragrafları (liste veya string)
+        prompt: Yeniden yazma talimatı
+    
+    Returns:
+        Yeniden yazılmış script paragrafları listesi
+    """
     base_list = _as_text_list(paragraphs)
     input_text = "\n\n".join(base_list)
-
+    
     system_msg = (
         "You are a podcast narration writer. "
         "Rewrite the original text based on the given theme or instructions. "
@@ -83,21 +88,21 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
         "Return the result as paragraphs separated by a blank line. "
         "Do NOT add speaker names or dialogue tags."
     )
+    
     full_prompt = (
         f"{system_msg}\n\n"
         f"Original Script:\n{input_text}\n\n"
         f"Rewrite Instruction:\n{prompt}\n\n"
         f"Format: one or two sentences per paragraph, separated by a blank line."
     )
-
+    
     resp = client.models.generate_content(
         model="gemini-1.5-pro",
         contents=full_prompt
     )
+    
     raw = getattr(resp, "text", "") or ""
-
-    return _postprocess_to_list(raw)
-st(text_or_list: Any) -> List[str]:
+    return _postprocess_to_list(raw)st(text_or_list: Any) -> List[str]:
     """
     Modelden geleni List[str]'e çevirir.
     - Liste dönerse normalize eder
