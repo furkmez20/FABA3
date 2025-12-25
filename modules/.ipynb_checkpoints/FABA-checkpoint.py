@@ -1,4 +1,3 @@
-# modules/FABA.py
 from __future__ import annotations
 
 import os
@@ -19,7 +18,6 @@ if os.path.exists(ffmpeg_path):
     AudioSegment.converter = ffmpeg_path
     AudioSegment.ffprobe = ffprobe_path
 else:
-    # Try to find in PATH
     ffmpeg_in_path = which("ffmpeg")
     ffprobe_in_path = which("ffprobe")
     
@@ -28,15 +26,12 @@ else:
     if ffprobe_in_path:
         AudioSegment.ffprobe = ffprobe_in_path
 
-# ------------------------------------------------------------
-# 0) API KEY - Güvenli okuma (env ya da .streamlit/secrets.toml)
-# ------------------------------------------------------------
+
 def _read_api_key() -> str:
-    # Streamlit ile çalışıyorsak secrets'tan da deneyelim
     api = os.getenv("ELEVEN_API_KEY")
     if not api:
         try:
-            import streamlit as st  # type: ignore
+            import streamlit as st
             api = st.secrets.get("ELEVEN_API_KEY", "")
         except Exception:
             api = ""
@@ -44,12 +39,9 @@ def _read_api_key() -> str:
         raise RuntimeError("ELEVEN_API_KEY bulunamadı (env veya .streamlit/secrets.toml).")
     return api
 
+
 ELEVEN_API_KEY = _read_api_key()
 
-# ------------------------------------------------------------
-# 1) Public (herkeste çalışan) voice ID'leri
-#    Etiketler edit_page.py'dekiyle birebir aynı olmalı
-# ------------------------------------------------------------
 VOICE_MAP: Dict[str, str] = {
     "Female – Rachel": "21m00Tcm4TlvDq8ikWAM",
     "Female – Bella":  "EXAVITQu4vr4xnSDxMaL",
@@ -61,25 +53,16 @@ VOICE_MAP: Dict[str, str] = {
     "Male – Eric":     "cjVigY5qzO86Huf0OWal",
 }
 
-# ------------------------------------------------------------
-# 2) Basit disk cache (aynı paragraf + aynı ses = tekrar istek atma)
-# ------------------------------------------------------------
 CACHE_DIR = "audio_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
+
 
 def _cache_name(text: str, voice_id: str) -> str:
     h = hashlib.md5(text.encode("utf-8")).hexdigest()
     return os.path.join(CACHE_DIR, f"{voice_id}_{h}.mp3")
 
-# ------------------------------------------------------------
-# 3) ElevenLabs TTS – Sağlamlaştırılmış istek + doğrulama
-# ------------------------------------------------------------
+
 def _tts(text: str, voice_id: str, model_id: Optional[str] = "eleven_turbo_v2") -> AudioSegment:
-    """
-    Tek bir paragrafı ElevenLabs TTS ile MP3'e çevirir.
-    - Audio dönmezse (400/401/limit vb.) exception fırlatır.
-    - Başarılı sonuçları cache'ler.
-    """
     text = (text or "").strip()
     if not text:
         raise ValueError("Boş metin TTS'e gönderilemez.")
@@ -88,8 +71,7 @@ def _tts(text: str, voice_id: str, model_id: Optional[str] = "eleven_turbo_v2") 
     if os.path.exists(cache_file):
         try:
             return AudioSegment.from_file(cache_file, format="mp3")
-        except Exception as e:
-            # Cache bozuksa, yeniden üret
+        except Exception:
             os.remove(cache_file)
 
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
@@ -103,13 +85,12 @@ def _tts(text: str, voice_id: str, model_id: Optional[str] = "eleven_turbo_v2") 
         "voice_settings": {"stability": 0.5, "similarity_boost": 0.5}
     }
     if model_id:
-        payload["model_id"] = model_id  # public seslerle uyumlu
+        payload["model_id"] = model_id
 
     r = requests.post(url, json=payload, headers=headers, timeout=60)
 
     ctype = r.headers.get("content-type", "")
     if r.status_code != 200 or not ctype.startswith("audio/mpeg"):
-        # API'nin döndürdüğü gerçek mesajı yüzeye çıkar
         try:
             detail = r.json()
         except Exception:
@@ -123,11 +104,7 @@ def _tts(text: str, voice_id: str, model_id: Optional[str] = "eleven_turbo_v2") 
     except Exception as e:
         raise RuntimeError(f"FFmpeg error processing audio: {e}. Make sure FFmpeg is installed.")
 
-# ------------------------------------------------------------
-# 4) JSON okuma – farklı formatlara tolerans
-#    - ["para1", "para2", ...]
-#    - [{"text": "...", "speaker": "..."} , ...]
-# ------------------------------------------------------------
+
 def _load_segments(json_path: str) -> List[Dict[str, str]]:
     if not os.path.exists(json_path):
         raise FileNotFoundError(f"JSON not found: {json_path}")
@@ -153,9 +130,7 @@ def _load_segments(json_path: str) -> List[Dict[str, str]]:
         raise ValueError("No segments found in JSON. Script may be empty.")
     return segments
 
-# ------------------------------------------------------------
-# 5) Yardımcı – seçilen etiketlerden voice_id listesi üret
-# ------------------------------------------------------------
+
 def _resolve_voice_ids(selected_labels: Optional[List[str]]) -> List[str]:
     ids: List[str] = []
     if selected_labels:
@@ -165,29 +140,20 @@ def _resolve_voice_ids(selected_labels: Optional[List[str]]) -> List[str]:
                 ids.append(vid)
 
     if not ids:
-        # Fallback: iki public ses
         ids = [VOICE_MAP["Female – Rachel"], VOICE_MAP["Male – Adam"]]
     return ids
 
-# ------------------------------------------------------------
-# 6) ANA FONKSİYON – Podcast üret
-# ------------------------------------------------------------
+
 def generate_podcast(
     json_path: str,
     selected_speakers: Optional[List[str]] = None,
     gap_ms: int = 400,
     out_name: str = "podcast_final.mp3",
 ) -> str:
-    """
-    json_path: save_script_to_json tarafından üretilen dosya yolu
-    selected_speakers: edit_page'de seçilen etiketler (max 4). None ise fallback kullanılır.
-    gap_ms: paragraflar arası sessizlik
-    out_name: çıktı dosyası adı
-    """
     segments = _load_segments(json_path)
     voice_ids = _resolve_voice_ids(selected_speakers)
 
-    final_audio = AudioSegment.silent(duration=1000)  # 1 sn intro
+    final_audio = AudioSegment.silent(duration=1000)
     added = 0
 
     for i, seg in enumerate(segments):
@@ -195,15 +161,12 @@ def generate_podcast(
         if not text:
             continue
 
-        # Eğer JSON'da speaker ismi varsa ve VOICE_MAP'te karşılığı bulunuyorsa onu kullan,
-        # yoksa round-robin ile selected_speakers'tan dağıt.
         spk_label = (seg.get("speaker") or "").strip()
         if spk_label and spk_label in VOICE_MAP:
             vid = VOICE_MAP[spk_label]
         else:
             vid = voice_ids[i % len(voice_ids)]
 
-        # ❗ Hata olursa exception fırlasın; 1 sn'lik boş dosya üretmeyelim
         clip = _tts(text, vid, model_id="eleven_turbo_v2")
         final_audio += clip + AudioSegment.silent(duration=gap_ms)
         added += 1
@@ -218,8 +181,4 @@ def generate_podcast(
     except Exception as e:
         raise RuntimeError(f"FFmpeg error exporting final podcast: {e}. Make sure FFmpeg is installed.")
     
-    return out_path     final_audio.export(out_path, format="mp3")
-    except Exception as e:
-        raise RuntimeError(f"FFmpeg error exporting final podcast: {e}. Make sure FFmpeg is installed.")
-    
     return out_path

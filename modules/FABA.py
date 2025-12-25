@@ -1,32 +1,12 @@
 # modules/FABA.py
-from __future__ import annotations
+# --- Podcast üreten çekirdek modül ---
 
-import os
-import io
-import json
-import hashlib
+from __future__ import annotations
+import os, io, json, hashlib
 from typing import List, Dict, Any, Optional
 
 import requests
 from pydub import AudioSegment
-from pydub.utils import which
-
-# Configure pydub to find FFmpeg
-ffmpeg_path = os.path.expanduser("~/.ffmpeg/ffmpeg")
-ffprobe_path = os.path.expanduser("~/.ffmpeg/ffprobe")
-
-if os.path.exists(ffmpeg_path):
-    AudioSegment.converter = ffmpeg_path
-    AudioSegment.ffprobe = ffprobe_path
-else:
-    # Try to find in PATH
-    ffmpeg_in_path = which("ffmpeg")
-    ffprobe_in_path = which("ffprobe")
-    
-    if ffmpeg_in_path:
-        AudioSegment.converter = ffmpeg_in_path
-    if ffprobe_in_path:
-        AudioSegment.ffprobe = ffprobe_in_path
 
 # ------------------------------------------------------------
 # 0) API KEY - Güvenli okuma (env ya da .streamlit/secrets.toml)
@@ -86,11 +66,7 @@ def _tts(text: str, voice_id: str, model_id: Optional[str] = "eleven_turbo_v2") 
 
     cache_file = _cache_name(text, voice_id)
     if os.path.exists(cache_file):
-        try:
-            return AudioSegment.from_file(cache_file, format="mp3")
-        except Exception as e:
-            # Cache bozuksa, yeniden üret
-            os.remove(cache_file)
+        return AudioSegment.from_file(cache_file, format="mp3")
 
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     headers = {
@@ -116,12 +92,9 @@ def _tts(text: str, voice_id: str, model_id: Optional[str] = "eleven_turbo_v2") 
             detail = r.text
         raise RuntimeError(f"ElevenLabs TTS failed ({r.status_code}): {detail}")
 
-    try:
-        audio = AudioSegment.from_file(io.BytesIO(r.content), format="mp3")
-        audio.export(cache_file, format="mp3")
-        return audio
-    except Exception as e:
-        raise RuntimeError(f"FFmpeg error processing audio: {e}. Make sure FFmpeg is installed.")
+    audio = AudioSegment.from_file(io.BytesIO(r.content), format="mp3")
+    audio.export(cache_file, format="mp3")
+    return audio
 
 # ------------------------------------------------------------
 # 4) JSON okuma – farklı formatlara tolerans
@@ -212,14 +185,8 @@ def generate_podcast(
         raise RuntimeError("Hiçbir ses segmenti üretilmedi. (Boş script, eşleşmeyen speaker ya da TTS hatası).")
 
     out_path = os.path.join(os.getcwd(), out_name)
-    
-    try:
-        final_audio.export(out_path, format="mp3")
-    except Exception as e:
-        raise RuntimeError(f"FFmpeg error exporting final podcast: {e}. Make sure FFmpeg is installed.")
-    
-    return out_path     final_audio.export(out_path, format="mp3")
-    except Exception as e:
-        raise RuntimeError(f"FFmpeg error exporting final podcast: {e}. Make sure FFmpeg is installed.")
-    
+    final_audio.export(out_path, format="mp3")
     return out_path
+
+    return output_path
+
