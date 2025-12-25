@@ -1,3 +1,33 @@
+import subprocess
+import os
+
+# Install FFmpeg at runtime if not available
+def ensure_ffmpeg():
+    """Check if FFmpeg is available, install if not."""
+    try:
+        subprocess.run(['ffmpeg', '-version'], 
+                      capture_output=True, 
+                      check=True, 
+                      timeout=5)
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        try:
+            print("Installing FFmpeg...")
+            subprocess.run(['apt-get', 'update'], check=False)
+            subprocess.run(['apt-get', 'install', '-y', 'ffmpeg'], 
+                         check=False, 
+                         timeout=120)
+            return True
+        except Exception as e:
+            print(f"Failed to install FFmpeg: {e}")
+            return False
+
+# Run at startup
+ensure_ffmpeg()
+
+# Now import the rest
+import streamlit as st
+# ... rest of your imports
 
 import sys
 import streamlit as st
