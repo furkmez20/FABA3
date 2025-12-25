@@ -95,12 +95,12 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
 
     # 3) Gemini çağrısı
     # 3) Gemini çağrısı (new google-genai)    
-client = genai.Client(api_key=_read_gemini_key())    
-resp = client.models.generate_content    (
-    model="gemini-1.5-pro    ",
-    contents=full_prompt
-)
-raw = resp.text
+    client = genai.Client(api_key=_read_gemini_key())    
+    resp = client.models.generate_content    (
+        model="gemini-1.5-pro    ",
+        contents=full_prompt
+    )
+    raw = resp.text
 
 
     return _postprocess_to_list(raw)
