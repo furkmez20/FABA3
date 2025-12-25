@@ -98,7 +98,7 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
 client = genai.Client(api_key=_read_gemini_key())    
 resp = client.models.generate_content    (
     model="gemini-1.5-pro    ",
-    contents=full_pro    mp    t
+    contents=full_prompt
 )
 raw = resp.text
 
