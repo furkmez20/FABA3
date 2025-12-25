@@ -93,7 +93,7 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
     )
 
     # 3) Gemini çağrısı
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-1.5-pro")
     resp = model.generate_content(full_prompt)
     raw = (getattr(resp, "text", None) or "").strip()
 
