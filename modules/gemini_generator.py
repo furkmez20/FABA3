@@ -4,8 +4,7 @@ from __future__ import annotations
 from typing import Any, List
 import os
 import re
-
-import google.generativeai as genai
+from google import genai
 
 # -----------------------------
 # Güvenli API anahtarı okuma
@@ -13,15 +12,17 @@ import google.generativeai as genai
 def _read_gemini_key() -> str:
     key = os.getenv("GEMINI_API_KEY")
     if not key:
-        # Streamlit ortamında çalışıyorsak secrets'tan da dene
         try:
             import streamlit as st  # type: ignore
             key = st.secrets.get("GEMINI_API_KEY", "")
         except Exception:
             key = ""
     if not key:
-        raise RuntimeError("GEMINI_API_KEY bulunamadı (env veya .streamlit/secrets.toml).")
+        raise RuntimeError(
+            "GEMINI_API_KEY bulunamadı (env veya .streamlit/secrets.toml)."
+        )
     return key
+
 
 genai.configure(api_key=_read_gemini_key())
 
@@ -93,9 +94,13 @@ def generate_script_with_prompt(paragraphs: Any, prompt: str) -> List[str]:
     )
 
     # 3) Gemini çağrısı
-    model = genai.GenerativeModel("gemini-1.5-pro")
-    resp = model.generate_content(full_prompt)
-    raw = (getattr(resp, "text", None) or "").strip()
+    # 3) Gemini çağrısı (new google-genai)    
+client = genai.Client(api_key=_read_gemini_key())    
+resp = client.models.generate_content    (
+    model="gemini-1.5-pro    ",
+    contents=full_pro    mp    t
+)
+raw = resp.text
 
-    # 4) Çıktıyı List[str]'e dönüştürüp geri ver
+
     return _postprocess_to_list(raw)
