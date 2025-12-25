@@ -6,11 +6,33 @@ import os, io, json, hashlib
 from typing import List, Dict, Any, Optional
 
 import requests
-from pydub import AudioSegment
-
-# Configure pydub to use FFmpeg
-AudioSegment.converter = "ffmpeg"
-AudioSegment.ffprobe = "ffprobe"
+from pydub import AudioS# modules/FABA.py
+from __future__ import annotations
+import os, io, json, hashlib
+from typing import List, Dict, Any, Optional
+
+import requests
+from pydub import AudioSegment
+from pydub.utils import which
+
+# Try to find FFmpeg in custom location or PATH
+ffmpeg_path = os.path.expanduser("~/.ffmpeg/ffmpeg")
+ffprobe_path = os.path.expanduser("~/.ffmpeg/ffprobe")
+
+if os.path.exists(ffmpeg_path):
+    AudioSegment.converter = ffmpeg_path
+    AudioSegment.ffprobe = ffprobe_path
+else:
+    # Try to find in PATH
+    ffmpeg_in_path = which("ffmpeg")
+    ffprobe_in_path = which("ffprobe")
+    
+    if ffmpeg_in_path:
+        AudioSegment.converter = ffmpeg_in_path
+    if ffprobe_in_path:
+        AudioSegment.ffprobe = ffprobe_in_path
+
+# ... rest of your code remains the same = "ffprobe"
 
 # ------------------------------------------------------------
 # 0) API KEY - Güvenli okuma (env ya da .streamlit/secrets.toml)
