@@ -2,3 +2,5 @@
 # Local secrets
 .env
 .streamlit/secrets.toml
+audio_cache/
+*.mp3
